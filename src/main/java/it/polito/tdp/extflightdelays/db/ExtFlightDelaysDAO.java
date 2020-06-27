@@ -7,10 +7,13 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
+import it.polito.tdp.extflightdelays.model.Adiacenti;
 import it.polito.tdp.extflightdelays.model.Airline;
 import it.polito.tdp.extflightdelays.model.Airport;
 import it.polito.tdp.extflightdelays.model.Flight;
+import it.polito.tdp.extflightdelays.model.Stato;
 
 public class ExtFlightDelaysDAO {
 
@@ -38,7 +41,7 @@ public class ExtFlightDelaysDAO {
 	}
 	
 	public List<Airline> loadAllAirlines() {
-		String sql = "SELECT * from airlines";
+		String sql = "SELECT * from airlines ";
 		List<Airline> result = new ArrayList<Airline>();
 
 		try {
@@ -114,5 +117,58 @@ public class ExtFlightDelaysDAO {
 			System.out.println("Errore connessione al database");
 			throw new RuntimeException("Error Connection Database");
 		}
+	}
+	
+	public List<Stato> getAllState(){
+		String sql="SELECT DISTINCT(STATE) as stato, ID FROM airports";
+		
+		List<Stato> result= new ArrayList<>();
+		try {
+			Connection conn = DBConnect.getConnection();
+			PreparedStatement st = conn.prepareStatement(sql);
+			ResultSet rs = st.executeQuery();
+			
+			while(rs.next()) {
+				result.add(new Stato(rs.getString("stato"), rs.getInt("ID")));
+			}
+			
+			conn.close();
+			return result;
+		}catch (SQLException e) {
+			e.printStackTrace();
+			System.out.println("Errore connessione al database");
+			throw new RuntimeException("Error Connection Database");
+		}
+	}
+	
+	public List<Adiacenti> getVoliByTratta(Map<Integer, Stato> idMapStato){
+		String sql="SELECT f1.ORIGIN_AIRPORT_ID as partenza, f1.DESTINATION_AIRPORT_ID as destinazione, COUNT(DISTINCT f1.TAIL_NUMBER) AS peso " + 
+				"FROM flights f1 " + 
+				"GROUP BY f1.ORIGIN_AIRPORT_ID, f1.DESTINATION_AIRPORT_ID "; 
+		
+		List<Adiacenti>result=new ArrayList<>();
+		
+		try {
+			Connection conn = DBConnect.getConnection();
+			PreparedStatement st = conn.prepareStatement(sql);
+			ResultSet rs = st.executeQuery();
+			
+			while(rs.next()) {
+				Stato partenza=idMapStato.get(rs.getInt("partenza"));
+				Stato destinazione=idMapStato.get(rs.getInt("destinazione"));
+				
+				if(partenza != null && destinazione !=null)
+					result.add(new Adiacenti(partenza, destinazione, rs.getInt("peso")));
+			}
+			
+			conn.close();
+			return result;
+			
+		}catch (SQLException e) {
+			e.printStackTrace();
+			System.out.println("Errore connessione al database");
+			throw new RuntimeException("Error Connection Database");
+		}
+			
 	}
 }
