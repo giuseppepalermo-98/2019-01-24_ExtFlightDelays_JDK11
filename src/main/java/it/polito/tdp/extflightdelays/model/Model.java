@@ -1,10 +1,10 @@
 package it.polito.tdp.extflightdelays.model;
 
+
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+
 
 import org.jgrapht.Graph;
 import org.jgrapht.Graphs;
@@ -16,59 +16,55 @@ import it.polito.tdp.extflightdelays.db.ExtFlightDelaysDAO;
 public class Model {
 
 	private ExtFlightDelaysDAO dao;
-	private List<Stato> stati;
-	private Map<Integer, Stato> idMapStato;
-	private Graph<Stato, DefaultWeightedEdge> grafo;
+	private List<String> stati;
+	private List<Adiacenti> archi;
+	
+	private Graph<String, DefaultWeightedEdge> grafo;
 	
 	public Model() {
 		dao = new ExtFlightDelaysDAO();
 	}
-
-	public List<Stato> getState(){
-		idMapStato= new HashMap<>();
-		
-		stati = dao.getAllState();
-		
-		for(Stato s: stati)
-			idMapStato.put(s.getId(), s);
-		
-	
-		return stati;
-	}
 	
 	public void creaGrafo() {
-		grafo = new SimpleDirectedWeightedGraph<>(DefaultWeightedEdge.class);
+		stati = dao.getAllState();
+		archi = dao.getVoliByTratta();
 		
-		Graphs.addAllVertices(grafo, stati);
+		grafo = new SimpleDirectedWeightedGraph <>(DefaultWeightedEdge.class);
 		
-		List<Adiacenti> archi=dao.getVoliByTratta(idMapStato);
+		Graphs.addAllVertices(this.grafo, stati);
+		System.out.println(grafo.vertexSet().size());
 		
 		for(Adiacenti a: archi) {
-			Graphs.addEdgeWithVertices(grafo, a.getStatopartenza(), a.getStatodestinazione(), a.getNumeroVelivoli());
+			if(grafo.containsVertex(a.getStatoPartenza()) && grafo.containsVertex(a.getStatoDestinazione()) && 
+					grafo.getEdge(a.getStatoPartenza(), a.getStatoDestinazione()) == null)
+					Graphs.addEdgeWithVertices(grafo, a.getStatoPartenza(), a.getStatoDestinazione(), a.getPeso());
 		}
 		System.out.println(grafo.vertexSet().size());
 		System.out.println(grafo.edgeSet().size());
 	}
 	
-	public List<Adiacenti> getVelivoliByStato(Stato partenza){
-		List<Stato> raggiungibili = Graphs.successorListOf(grafo, partenza);
-		List<Adiacenti>result = new ArrayList<>();
-		
-		for(Stato s: raggiungibili) {
-			result.add(new Adiacenti(partenza, s, (int) grafo.getEdgeWeight(grafo.getEdge(partenza, s))));
-		}
-		Collections.sort(result);
-		return result;
+	public List<String> getStati(){
+		return stati;
 	}
 	
-	public List<AffluenzaStato> getAffluenza(Integer T, Integer G, Stato partenza){
-		Simulatore sim= new Simulatore();
-		sim.init(T, G, grafo, partenza);
-		sim.run();
+	public List<Vicino> getVicini(String selezionato){
+		List<Vicino> result = new ArrayList<>();
+		List<String> vicini = Graphs.successorListOf(this.grafo, selezionato);
 		
-		List<AffluenzaStato> result= sim.getAffluenza();
+		for(String s: vicini) 
+			result.add(new Vicino(s, (int) grafo.getEdgeWeight(grafo.getEdge(selezionato, s))));
 		
+		Collections.sort(result);
+			
 		return result;
 		
+	}
+	
+	public List<AffluenzaStato> simula(Integer G, Integer T, String partenza){
+		Simulatore sim = new Simulatore();
+		sim.init(T, G, partenza);
+		sim.run();
+		
+		return sim.getTuristi();
 	}
 }

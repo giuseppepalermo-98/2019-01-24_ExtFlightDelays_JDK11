@@ -1,45 +1,40 @@
 package it.polito.tdp.extflightdelays.model;
 
-public class Adiacenti implements Comparable <Adiacenti> {
+public class Adiacenti {
 
-	private Stato statopartenza;
-	private Stato statodestinazione;
-	private Integer numeroVelivoli;
+	private String statoPartenza;
+	private String statoDestinazione;
+	private Integer peso;
 	
-	public Adiacenti(Stato statopartenza, Stato statodestinazione, Integer numeroVelivoli) {
+	public Adiacenti(String statoPartenza, String statoDestinazione, Integer peso) {
 		super();
-		this.statopartenza = statopartenza;
-		this.statodestinazione = statodestinazione;
-		this.numeroVelivoli = numeroVelivoli;
+		this.statoPartenza = statoPartenza;
+		this.statoDestinazione = statoDestinazione;
+		this.peso = peso;
 	}
 
-	public Stato getStatopartenza() {
-		return statopartenza;
+	public String getStatoPartenza() {
+		return statoPartenza;
 	}
 
-	public void setStatopartenza(Stato statopartenza) {
-		this.statopartenza = statopartenza;
+	public void setStatoPartenza(String statoPartenza) {
+		this.statoPartenza = statoPartenza;
 	}
 
-	public Stato getStatodestinazione() {
-		return statodestinazione;
+	public String getStatoDestinazione() {
+		return statoDestinazione;
 	}
 
-	public void setStatodestinazione(Stato statodestinazione) {
-		this.statodestinazione = statodestinazione;
+	public void setStatoDestinazione(String statoDestinazione) {
+		this.statoDestinazione = statoDestinazione;
 	}
 
-	public Integer getNumeroVelivoli() {
-		return numeroVelivoli;
+	public Integer getPeso() {
+		return peso;
 	}
 
-	public void setNumeroVelivoli(Integer numeroVelivoli) {
-		this.numeroVelivoli = numeroVelivoli;
-	}
-
-	@Override
-	public int compareTo(Adiacenti o) {
-		return -(this.numeroVelivoli-o.getNumeroVelivoli());
+	public void setPeso(Integer peso) {
+		this.peso = peso;
 	}
 	
 	

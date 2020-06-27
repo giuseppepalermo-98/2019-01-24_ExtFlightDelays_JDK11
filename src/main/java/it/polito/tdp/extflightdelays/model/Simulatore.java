@@ -1,96 +1,92 @@
 package it.polito.tdp.extflightdelays.model;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.Random;
 
-import org.jgrapht.Graph;
-import org.jgrapht.Graphs;
-import org.jgrapht.graph.DefaultWeightedEdge;
-import org.jgrapht.graph.SimpleDirectedWeightedGraph;
-
-import it.polito.tdp.extflightdelays.model.Event.EventType;
+import it.polito.tdp.extflightdelays.db.ExtFlightDelaysDAO;
 
 public class Simulatore {
 
-	//Vaariabili inserite in fase di simulazione
-	private Integer T_turisti;
-	private Integer G_giorni;
+	//VARIBILI INPUT 
+	private Integer T_TURISTI;
+	private Integer G_GIORNI;
 	
-	//Varibili dello stato 
-	private Graph<Stato, DefaultWeightedEdge> grafo;
+	//VARIABILI OUTPUT(in questo caso è anche una variabile dello stato)
+	private Map<String, AffluenzaStato> mappaTuristi;
+	//private Graph<String, DefaultWeightedEdge> grafo;
+	private ExtFlightDelaysDAO dao;
+	private List<Vicino> vicini;
+	private List<Adiacenti> tuttiVoli;
+	
+	//Eventi
 	private PriorityQueue<Event> queue;
 	
-	//Varibili da restituire
-	private Map<String, AffluenzaStato> affluenza; //la chiave è la sigla dello stato 
-	
-	public void init(Integer T, Integer G, Graph<Stato, DefaultWeightedEdge> grafo, Stato partenza) {
-		this.T_turisti=T;
-		this.G_giorni=G;
-		this.grafo=grafo;
+	public void init(Integer T, Integer G, String partenza) {
+		this.T_TURISTI= T;
+		this.G_GIORNI = G;
 		
+		dao = new ExtFlightDelaysDAO();
 		
-		this.affluenza= new HashMap<>();
+		this.mappaTuristi = new HashMap<>();
 		
-		for(Stato s: grafo.vertexSet()) {
-			affluenza.put(s.getStato(), new AffluenzaStato(s, 0));
+		for(String s: dao.getAllState()) {
+			mappaTuristi.put(s, new AffluenzaStato(s, 0));
 		}
 		
-		affluenza.put(partenza.getStato(), new AffluenzaStato(partenza, T_turisti));
+		mappaTuristi.get(partenza).setNumTuristi(T_TURISTI);
 		
+		this.tuttiVoli = dao.geAllVoli();
 		
 		this.queue = new PriorityQueue<>();
 		
-		queue.add(new Event(EventType.PARTENZA, 1, partenza));
+		for(int i=0; i<T_TURISTI; i++) {
+			queue.add(new Event(0, partenza));
+		}	
 	}
 	
-	public void run() {
+	public void run () {
 		while(!queue.isEmpty()) {
-			Event e= queue.poll();
-			processEvent(e);
-		}
-	}
-
-	private void processEvent(Event e) {
-		//Allora GENERO NUOVI EVENTI 
-		
-		if(e.getGiorno()<this.G_giorni) {
-			Integer numeroTuristi=affluenza.get(e.getStato().getStato()).getNumTuristi();
-			List<Stato>possibili = Graphs.successorListOf(grafo, e.getStato());
-			Integer sommaUscenti=0;
 			
-			
-			for(Stato s: possibili) {
-				sommaUscenti += (int) grafo.getEdgeWeight(grafo.addEdge(e.getStato(), s));
-			}
-			
-			
-			for(int i=0; i<numeroTuristi; i++) {
-				boolean partito=false;
-				for(Stato s:possibili) {
-					Integer pesoArco= (int) grafo.getEdgeWeight(grafo.getEdge(e.getStato(), s));
-					if(Math.random()<pesoArco/sommaUscenti && !partito) {
-						partito=true;
-						
-						queue.add(new Event(EventType.PARTENZA, e.getGiorno()+1, s));
-						
-						affluenza.get(e.getStato().getStato()).decrementaturista();
-						
-						affluenza.get(s.getStato()).incrementaturista();
+			Event e = queue.poll();
+			if(e.getGiorno()<G_GIORNI) {
+				vicini = new ArrayList<>();
+				
+				//PRENDO TUTTI I VICINI IN MANIERA ALTERNATIVA AL GRAFO ESSEDO CHE I VALORI SONO DIVERSI 
+				//DA QUELLI DEL PUNTO PRECEDENTE
+				Integer pesoTot = 0;
+				
+				
+				for(Adiacenti a: this.tuttiVoli) {
+					if(a.getStatoPartenza().equals(e.getStato())) {
+						vicini.add(new Vicino(a.getStatoDestinazione(), a.getPeso()));
+						pesoTot += a.getPeso();
+					}
+				}
+				Random ran = new Random();
+				Float probabilita = ran.nextFloat();
+				boolean partito = false;
+				
+				
+				for(Vicino prossimo: vicini) {
+					if(!partito && probabilita< prossimo.getPeso() / pesoTot*100000) {
+						queue.add(new Event(e.getGiorno()+1, prossimo.getStato()));
+						mappaTuristi.get(e.getStato()).decrementaTurista();
+						mappaTuristi.get(prossimo.getStato()).incrementaTurista();
 					}
 				}
 			}
 		}
 	}
 	
-	public List<AffluenzaStato> getAffluenza(){
-		List<AffluenzaStato> result= new ArrayList<>();
-		
-		for(AffluenzaStato af: affluenza.values())
-			result.add(af);
-		
+	public List<AffluenzaStato> getTuristi(){
+		List<AffluenzaStato> result = new ArrayList<>(mappaTuristi.values());
+		Collections.sort(result);
 		return result;
 	}
+	
 }

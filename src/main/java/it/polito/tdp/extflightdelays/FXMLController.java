@@ -4,10 +4,9 @@ import java.net.URL;
 import java.util.List;
 import java.util.ResourceBundle;
 
-import it.polito.tdp.extflightdelays.model.Adiacenti;
 import it.polito.tdp.extflightdelays.model.AffluenzaStato;
 import it.polito.tdp.extflightdelays.model.Model;
-import it.polito.tdp.extflightdelays.model.Stato;
+import it.polito.tdp.extflightdelays.model.Vicino;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -32,7 +31,7 @@ public class FXMLController {
     private Button btnCreaGrafo;
 
     @FXML
-    private ComboBox<Stato> cmbBoxStati;
+    private ComboBox<String> cmbBoxStati;
 
     @FXML
     private Button btnVisualizzaVelivoli;
@@ -49,62 +48,45 @@ public class FXMLController {
     @FXML
     void doCreaGrafo(ActionEvent event) {
     	this.txtResult.clear();
-    	//FUNZIONA MA E' IMPRECISO
-    	this.cmbBoxStati.getItems().clear();
-    	this.cmbBoxStati.getItems().addAll(model.getState());
     	
     	this.model.creaGrafo();
+    	this.txtResult.appendText("Grafo creato!");
     	
-    	
-    	
-    	this.txtResult.appendText("Grafo Creato!");
+    	this.cmbBoxStati.getItems().addAll(model.getStati());
     }
 
     @FXML
     void doSimula(ActionEvent event) {
     	this.txtResult.clear();
     	
-    	Stato partenza = this.cmbBoxStati.getValue();
+    	Integer G = Integer.parseInt(this.txtG.getText());
+    	Integer T = Integer.parseInt(this.txtT.getText());
+    	String partenza = this.cmbBoxStati.getValue();
     	
-    	if(partenza == null) {
-    		this.txtResult.appendText("ERRORE DEVI SELEZIONARE UNO STATO!");
-    		return;
-    	}
+    	List<AffluenzaStato> result = model.simula(G, T, partenza);
     	
-    	Integer T;
-    	Integer G;
-    	try {
-    		T= Integer.parseInt(this.txtT.getText());
-    		G=Integer.parseInt(this.txtG.getText());
-    	}catch(NumberFormatException e) {
-    		this.txtResult.appendText("Inserire valori corretti ");
-    		return;
-    	}
+    	this.txtResult.appendText("I turisti nei diversi STATI: \n \n");
     	
-    	List<AffluenzaStato> affluenza = model.getAffluenza(T, G, partenza);
-    	
-    	for(AffluenzaStato af: affluenza) {
-    		this.txtResult.appendText(af.getStato().getStato()+" ---> "+af.getNumTuristi());
-    	}
+    	for(AffluenzaStato as: result)
+    		this.txtResult.appendText(as.getStato()+" ("+as.getNumTuristi()+")\n");
     }
 
     @FXML
     void doVisualizzaVelivoli(ActionEvent event) {
     	this.txtResult.clear();
+    
+    	String selezionato = this.cmbBoxStati.getValue();
     	
-    	Stato partenza = this.cmbBoxStati.getValue();
-    	
-    	if(partenza == null) {
-    		this.txtResult.appendText("ERRORE DEVI SELEZIONARE UNO STATO!");
+    	if(selezionato == null ) {
+    		this.txtResult.appendText("ERRORE SELEZIONA UNO STATO");
     		return;
     	}
     	
-    	List<Adiacenti> result= model.getVelivoliByStato(partenza);
+    	List<Vicino> result = model.getVicini(selezionato);
     	
-    	this.txtResult.appendText("Gli stati collegati a qquello di partenza sono i seguenti con il numero di velivoli: \n");
-    	for(Adiacenti a: result) {
-    		this.txtResult.appendText(a.getStatodestinazione().getStato()+" ("+a.getNumeroVelivoli()+") \n");
-    	}
+    	this.txtResult.appendText("Stati connessi: \n");
+    	for(Vicino v: result)
+    		this.txtResult.appendText(v.getStato()+" ("+v.getPeso()+")\n");
     }
 
     @FXML
